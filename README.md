@@ -1,119 +1,135 @@
-# Welcome to the KubeBlocks project!
+# kubeblocks
+// TODO(user): Add simple overview of use/purpose
 
-[![Documentation status](https://github.com/apecloud/kubeblocks.io/workflows/Documentation/badge.svg)](https://kubeblocks.io)
-[![OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/projects/7544/badge)](https://bestpractices.coreinfrastructure.org/projects/7544)
-[![CICD Push](https://github.com/apecloud/kubeblocks/workflows/CICD-PUSH/badge.svg)](https://github.com/apecloud/kubeblocks/actions/workflows/cicd-push.yml)
-[![CodeQL](https://github.com/apecloud/kubeblocks/workflows/CodeQL/badge.svg)](https://github.com/apecloud/kubeblocks/actions/workflows/codeql.yml)
-[![Releases](https://github.com/apecloud/kubeblocks/actions/workflows/release-version.yml/badge.svg)](https://github.com/apecloud/kubeblocks/actions/workflows/release-version.yml)
-[![Release](https://img.shields.io/github/v/release/apecloud/kubeblocks)](https://github.com/apecloud/kubeblocks/releases/latest)
-[![LICENSE](https://img.shields.io/github/license/apecloud/kubeblocks.svg?style=flat-square)](/LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/apecloud/kubeblocks)](https://goreportcard.com/report/github.com/apecloud/kubeblocks)
-[![Docker Pulls](https://img.shields.io/docker/pulls/apecloud/kubeblocks)](https://hub.docker.com/r/apecloud/kubeblocks)
-[![Codecov](https://codecov.io/gh/apecloud/kubeblocks/branch/main/graph/badge.svg?token=GEH4I1C80Y)](https://codecov.io/gh/apecloud/kubeblocks)
-![maturity](https://img.shields.io/static/v1?label=maturity&message=alpha&color=red)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/kubeblocks)](https://artifacthub.io/packages/search?repo=kubeblocks)
+## Description
+// TODO(user): An in-depth paragraph about your project and overview of use
 
-![image](./docs/img/banner-readme.jpeg)
+## Getting Started
 
-## Motivation
+### Prerequisites
+- go version v1.23.0+
+- docker version 17.03+.
+- kubectl version v1.11.3+.
+- Access to a Kubernetes v1.11.3+ cluster.
 
-If you are a developer using multiple types of databases in your application and are considering deploying both your application and databases on K8s for cost or efficiency reasons, you need to find suitable operators for each database. Learning so many different operators and their APIs introduces a significant learning curve and time costs, not to mention the effort required to maintain them.
+### To Deploy on the cluster
+**Build and push your image to the location specified by `IMG`:**
 
-KubeBlocks uses a unified set of APIs (CRDs) and code to manage various databases on K8s. For example, we can use the `Cluster` resource to create a PostgreSQL cluster, a Redis cluster, or a Kafka cluster. This abstraction and unified API allow us to further use a single set of operator code to manage multiple types of databases, as well as handle day-2 operations, theoretically extending to any type of database engine.
+```sh
+make docker-build docker-push IMG=<some-registry>/kubeblocks:tag
+```
 
-## What is KubeBlocks
+**NOTE:** This image ought to be published in the personal registry you specified.
+And it is required to have access to pull the image from the working environment.
+Make sure you have the proper permission to the registry if the above commands don’t work.
 
-KubeBlocks is an open-source control plane software that runs and manages multiple popular database engines on K8s through a unified set of code and APIs. The core of KubeBlocks is a K8s operator, which defines a set of CRDs to abstract the common attributes of various database engines and uses these abstractions to manage the engine's lifecycle and day-2 operations.
+**Install the CRDs into the cluster:**
 
-KubeBlocks manages various types of stateful engines, including RDBMSs (MySQL, PostgreSQL), Caches(Redis), NoSQLs (MongoDB), MQs(Kafka, Pulsar), vector databases(Milvus, Qdrant, Weaviate), and data warehouses(ClickHouse, ElasticSearch, OpenSearch, Doris, StarRocks). Adding a new engine to KubeBlocks can be achieved by writing a KubeBlocks Addon. The community is actively integrating more types of engines into KubeBlocks, and it currently supports 35 types of engines.
+```sh
+make install
+```
 
-The name KubeBlocks is inspired by Kubernetes and LEGO blocks, signifying that through the KubeBlocks API, adding, composing and managing database engines on K8s can be easy, standard and productive, like playing with LEGO blocks.
+**Deploy the Manager to the cluster with the image specified by `IMG`:**
 
-### Why you need KubeBlocks
+```sh
+make deploy IMG=<some-registry>/kubeblocks:tag
+```
 
-KubeBlocks integrates the most popular database engines and provides rich management functions, along with declarative APIs, in various environments. KubeBlocks offers the following benefits:
+> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
+privileges or be logged in as admin.
 
-* Production-level
+**Create instances of your solution**
+You can apply the samples (examples) from the config/sample:
 
-  KubeBlocks has already been adopted by large internet companies, private clouds, the financial industry including banks and securities firms, telecom industry, the automotive industry, and SaaS software providers.
+```sh
+kubectl apply -k config/samples/
+```
 
-* Reliability
+>**NOTE**: Ensure that the samples has default values to test it out.
 
-  KubeBlocks supports the integration of various mature high-availability best practices, such as Orchestrator, Patroni, and Sentinel. KubeBlocks also supports full backups, continuous backups, and point-in-time recovery (PITR).
+### To Uninstall
+**Delete the instances (CRs) from the cluster:**
 
-* Ease of use
+```sh
+kubectl delete -k config/samples/
+```
 
-  KubeBlocks not only provides a YAML-based API but also offers an interactive `kbcli` tool to further simplify usage as a complement to `kubectl`. For example, you can install KubeBlocks and launch a playground environment on a desktop or cloud with a single command.
+**Delete the APIs(CRDs) from the cluster:**
 
-* Observability
+```sh
+make uninstall
+```
 
-  KubeBlocks collects monitoring metrics from rich data sources, integrates with the Prometheus stack, and provides insightful Grafana templates. In addition, troubleshooting tools such as slow logs are also provided.
+**UnDeploy the controller from the cluster:**
 
-* Extensibility
+```sh
+make undeploy
+```
 
-  KubeBlocks provides the addon mechanism for integrating new engines. So it can be extended to run the databases your project needs.
+## Project Distribution
 
-### Goals
+Following the options to release and provide this solution to the users.
 
-- Smoothing the learning curve of managing various databases on K8s
-- Exploring standard APIs for managing databases on Kubernetes
-- Being open and cloud-neutral, as well as engine-neutral
+### By providing a bundle with all YAML files
 
-### Key features
+1. Build the installer for the image built and published in the registry:
 
-- Supports various databases, including MySQL, PostgreSQL, Redis, MongoDB, Kafka, Clickhouse, ElasticSearch and more
-- Provides production-level performance, resilience, and observability
-- Simplifies day-2 operations, such as upgrading, scaling, monitoring, backup, and restore
-- Contains a powerful and intuitive command line tool
-- Be compatible with AWS, GCP, Azure, Alibaba Cloud and more CSP
+```sh
+make build-installer IMG=<some-registry>/kubeblocks:tag
+```
 
-## Get started with KubeBlocks
+**NOTE:** The makefile target mentioned above generates an 'install.yaml'
+file in the dist directory. This file contains all the resources built
+with Kustomize, which are necessary to install this project without its
+dependencies.
 
-[Quick Start](https://kubeblocks.io/docs/preview/user_docs/try-out-on-playground/try-kubeblocks-on-your-laptop) shows you the quickest way to get started with KubeBlocks.
+2. Using the installer
 
-## Resources
+Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
+the project, i.e.:
 
-[API Reference](https://kubeblocks.io/docs/release-0.8/developer_docs/api-reference/cluster)
+```sh
+kubectl apply -f https://raw.githubusercontent.com/<org>/kubeblocks/<tag or branch>/dist/install.yaml
+```
 
-[How to write a KubeBlocks Addon?](https://kubeblocks.io/docs/release-0.8/developer_docs/integration/how-to-add-an-add-on)
+### By providing a Helm Chart
 
-[KubeBlocks: Cloud-Native Data Infrastructure for Kubernetes](https://www.youtube.com/watch?v=KNwpG51Whzg) (A Video made by Viktor Farcic)
+1. Build the chart using the optional helm plugin
 
-[Dashboard Demo](https://console.kubeblocks.io/)
+```sh
+kubebuilder edit --plugins=helm/v1-alpha
+```
 
-## KubeBlocks at KubeCon
+2. See that a chart was generated under 'dist/chart', and users
+can obtain this solution from there.
 
-KubeCon 2024 in HongKong from 21-23 August 2024: [How to Manage Database Clusters Without a Dedicated Operator, By Shanshan Ying, ApeCloud & Shun Ding, China Mobile Cloud](https://kccncossaidevchn2024.sched.com/event/1eYYL/how-to-manage-database-clusters-without-a-dedicated-operator-nanoxi-operatorzha-fa-lia-zhong-shi-shanshan-ying-apecloud-shun-ding-china-mobile-cloud)
+**NOTE:** If you change the project, you need to update the Helm Chart
+using the same command above to sync the latest changes. Furthermore,
+if you create webhooks, you need to use the above command with
+the '--force' flag and manually ensure that any custom configuration
+previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
+is manually re-applied afterwards.
 
-KubeCon 2024 in HongKong from 21-23 August 2024: [KuaiShou's 100% Resource Utilization Boost: 100K Redis Migration from Bare Metal to Kubernetes, By XueQiang Wu, ApeCloud & YuXing Liu, Kuaishou](https://kccncossaidevchn2024.sched.com/event/1eYat/kuaishous-100-resource-utilization-boost-100k-redis-migration-from-bare-metal-to-kubernetes-zha-100pian-zhi-yi-daeplie-hui-zhe-100k-rediskubernetes-xueqiang-wu-apecloud-yuxing-liu-kuaishou)
+## Contributing
+// TODO(user): Add detailed information on how you would like others to contribute to this project
 
-## Community
+**NOTE:** Run `make help` for more information on all potential `make` targets
 
-If you have any questions, you can reach out to us through:
-
-- KubeBlocks [Slack Channel](https://join.slack.com/t/kubeblocks/shared_invite/zt-2pjob3ezp-FzaZM7NId~Tbzp6PYNbOzQ)
-- KubeBlocks Github [Discussions](https://github.com/apecloud/kubeblocks/discussions)
-- KubeBlocks Wechat Account:
-
-   <img src=".\docs\img\wechat-assistant.jpg" alt="wechat" width="100" height="100">
-
-You can also follow us on:
-
-- [Twitter](https://x.com/KubeBlocks)
-- [LinkedIn](https://www.linkedin.com/company/apecloud-ptd-ltd/)
-
-## Contributing to KubeBlocks
-
-Your contributions are welcomed and appreciated.
-
-- See the [Contributor Guide](docs/CONTRIBUTING.md) for details on typical contribution workflows.
-- See the [Developer Guide](docs%2F00%20-%20index.md) to get started with building and developing.
-
-## Report Vulnerability
-
-We consider security as the top priority issue. If you find any security issues, please [Report a security vulnerability](https://github.com/apecloud/kubeblocks/security/advisories/new) issue.
+More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
 
 ## License
 
-KubeBlocks is under the GNU Affero General Public License v3.0.
-See the [LICENSE](./LICENSE) file for details.
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+

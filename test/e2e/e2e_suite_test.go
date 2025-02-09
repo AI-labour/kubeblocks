@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022-2024 ApeCloud Co., Ltd
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,202 +14,97 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e_test
+package e2e
 
 import (
-	"context"
-	"flag"
 	"fmt"
-	"go/build"
-	"log"
-	"path/filepath"
+	"os"
+	"os/exec"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/vmware-tanzu/velero/test"
-	. "github.com/vmware-tanzu/velero/test/util/k8s"
 
-	"github.com/onsi/ginkgo/v2/reporters"
-	"go.uber.org/zap/zapcore"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	viper "github.com/apecloud/kubeblocks/pkg/viperx"
-	. "github.com/apecloud/kubeblocks/test/e2e"
-	"github.com/apecloud/kubeblocks/test/e2e/envcheck"
-	"github.com/apecloud/kubeblocks/test/e2e/installation"
-	"github.com/apecloud/kubeblocks/test/e2e/testdata/smoketest"
-	e2eutil "github.com/apecloud/kubeblocks/test/e2e/util"
+	"github.com/AI-labour/kubeblocks/test/utils"
 )
 
-var cfg *rest.Config
-var testEnv *envtest.Environment
-var TC *TestClient
-var version string
-var provider string
-var region string
-var secretID string
-var secretKey string
-var initEnv bool
-var testType string
-var skipCase string
-var configType string
+var (
+	// Optional Environment Variables:
+	// - PROMETHEUS_INSTALL_SKIP=true: Skips Prometheus Operator installation during test setup.
+	// - CERT_MANAGER_INSTALL_SKIP=true: Skips CertManager installation during test setup.
+	// These variables are useful if Prometheus or CertManager is already installed, avoiding
+	// re-installation and conflicts.
+	skipPrometheusInstall  = os.Getenv("PROMETHEUS_INSTALL_SKIP") == "true"
+	skipCertManagerInstall = os.Getenv("CERT_MANAGER_INSTALL_SKIP") == "true"
+	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
+	isPrometheusOperatorAlreadyInstalled = false
+	// isCertManagerAlreadyInstalled will be set true when CertManager CRDs be found on the cluster
+	isCertManagerAlreadyInstalled = false
 
-func init() {
-	viper.AutomaticEnv()
-	flag.StringVar(&version, "VERSION", "", "kubeblocks test version")
-	flag.StringVar(&provider, "PROVIDER", "", "kubeblocks test cloud-provider")
-	flag.StringVar(&region, "REGION", "", "kubeblocks test region")
-	flag.StringVar(&secretID, "SECRET_ID", "", "cloud-provider SECRET_ID")
-	flag.StringVar(&secretKey, "SECRET_KEY", "", "cloud-provider SECRET_KEY")
-	flag.BoolVar(&initEnv, "INIT_ENV", false, "cloud-provider INIT_ENV")
-	flag.StringVar(&testType, "TEST_TYPE", "", "test type")
-	flag.StringVar(&skipCase, "SKIP_CASE", "", "skip not execute cases")
-	flag.StringVar(&configType, "CONFIG_TYPE", "", "test config")
-}
+	// projectImage is the name of the image which will be build and loaded
+	// with the code source changes to be tested.
+	projectImage = "example.com/kubeblocks:v0.0.1"
+)
 
-func TestE2e(t *testing.T) {
-	if err := GetKubeconfigContext(); err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
+// TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
+// temporary environment to validate project changes with the the purposed to be used in CI jobs.
+// The default setup requires Kind, builds/loads the Manager Docker image locally, and installs
+// CertManager and Prometheus.
+func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	junitReporter := reporters.NewJUnitReporter("report.xml")
-	RunSpecsWithDefaultAndCustomReporters(t, "E2e Suite", []Reporter{junitReporter})
-}
-
-func GetKubeconfigContext() error {
-	var err error
-	var tcDefault TestClient
-	tcDefault, err = NewTestClient(test.VeleroCfg.DefaultCluster)
-	test.VeleroCfg.DefaultClient = &tcDefault
-	test.VeleroCfg.ClientToInstallVelero = test.VeleroCfg.DefaultClient
-	if err != nil {
-		return err
-	}
-
-	if test.VeleroCfg.DefaultCluster != "" {
-		err = KubectlConfigUseContext(context.Background(), test.VeleroCfg.DefaultCluster)
-		if err != nil {
-			return err
-		}
-	}
-	TC = &tcDefault
-	return nil
+	_, _ = fmt.Fprintf(GinkgoWriter, "Starting kubeblocks integration test suite\n")
+	RunSpecs(t, "e2e suite")
 }
 
 var _ = BeforeSuite(func() {
-	if len(version) == 0 {
-		log.Println("kubeblocks version is not specified")
+	By("Ensure that Prometheus is enabled")
+	_ = utils.UncommentCode("config/default/kustomization.yaml", "#- ../prometheus", "#")
+
+	By("building the manager(Operator) image")
+	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", projectImage))
+	_, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager(Operator) image")
+
+	// TODO(user): If you want to change the e2e test vendor from Kind, ensure the image is
+	// built and available before running the tests. Also, remove the following block.
+	By("loading the manager(Operator) image on Kind")
+	err = utils.LoadImageToKindClusterWithName(projectImage)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager(Operator) image into Kind")
+
+	// The tests-e2e are intended to run on a temporary cluster that is created and destroyed for testing.
+	// To prevent errors when tests run in environments with Prometheus or CertManager already installed,
+	// we check for their presence before execution.
+	// Setup Prometheus and CertManager before the suite if not skipped and if not already installed
+	if !skipPrometheusInstall {
+		By("checking if prometheus is installed already")
+		isPrometheusOperatorAlreadyInstalled = utils.IsPrometheusCRDsInstalled()
+		if !isPrometheusOperatorAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing Prometheus Operator...\n")
+			Expect(utils.InstallPrometheusOperator()).To(Succeed(), "Failed to install Prometheus Operator")
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: Prometheus Operator is already installed. Skipping installation...\n")
+		}
 	}
-	Version = version
-	InitEnv = initEnv
-	TestType = testType
-	ConfigType = configType
-	log.Println("TestType is ：" + TestType)
-	SkipCase = skipCase
-	TestResults = make([]Result, 0)
-	if len(provider) > 0 && len(region) > 0 && len(secretID) > 0 && len(secretKey) > 0 {
-		Provider = provider
-		Region = region
-		SecretID = secretID
-		SecretKey = secretKey
-	}
-	if viper.GetBool("ENABLE_DEBUG_LOG") {
-		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true), func(o *zap.Options) {
-			o.TimeEncoder = zapcore.ISO8601TimeEncoder
-		}))
+	if !skipCertManagerInstall {
+		By("checking if cert manager is installed already")
+		isCertManagerAlreadyInstalled = utils.IsCertManagerCRDsInstalled()
+		if !isCertManagerAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing CertManager...\n")
+			Expect(utils.InstallCertManager()).To(Succeed(), "Failed to install CertManager")
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: CertManager is already installed. Skipping installation...\n")
+		}
 	}
 })
 
 var _ = AfterSuite(func() {
-	By("delete helm release in e2e-test environment")
-	installation.CheckedUninstallHelmRelease()
-	if testEnv != nil {
-		By("removed installed CRDs in e2e-test environment")
-		err := testEnv.Stop()
-		Expect(err).NotTo(HaveOccurred())
+	// Teardown Prometheus and CertManager after the suite if not skipped and if they were not already installed
+	if !skipPrometheusInstall && !isPrometheusOperatorAlreadyInstalled {
+		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling Prometheus Operator...\n")
+		utils.UninstallPrometheusOperator()
 	}
-})
-
-var _ = Describe("e2e test", func() {
-	if initEnv {
-		Cancel()
-		Ctx, Cancel = context.WithCancel(context.TODO())
-		Logger = logf.FromContext(Ctx).WithValues()
-		Logger.Info("logger start")
-
-		K8sClient = TC.Kubebuilder
-		envcheck.CheckNoKubeBlocksCRDs()
-
-		By("bootstrapping e2e-test environment")
-		var flag = true
-		testEnv = &envtest.Environment{
-			CRDInstallOptions: envtest.CRDInstallOptions{
-				CleanUpAfterUse: true,
-			},
-			CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases"),
-				// use dependent external CRDs.
-				// resolved by ref: https://github.com/operator-framework/operator-sdk/issues/4434#issuecomment-786794418
-				filepath.Join(build.Default.GOPATH, "pkg", "mod", "github.com", "kubernetes-csi/external-snapshotter/",
-					"client/v6@v6.2.0", "config", "crd")},
-			ErrorIfCRDPathMissing: true,
-			UseExistingCluster:    &flag,
-		}
-
-		var err error
-		// cfg is defined in this file globally.
-		cfg, err = testEnv.Start()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg).NotTo(BeNil())
-		var _ = Describe("KubeBlocks playground init", smoketest.PlaygroundInit)
-
-		var _ = Describe("KubeBlocks uninstall", smoketest.UninstallKubeblocks)
-
-		var _ = Describe("Check healthy Kubernetes cluster status", envcheck.EnvCheckTest)
-	}
-
-	var kubeblocks string
-
-	if initEnv == false && len(version) > 0 {
-		It("check kbcli exist or not-exist", func() {
-			kbcli := e2eutil.CheckCommand("kbcli", "/usr/local/bin")
-			Expect(kbcli).Should(BeTrue())
-			kubeblocks = e2eutil.ExecCommand("kbcli version | grep KubeBlocks " +
-				"| (grep \"$1\" || true) | awk '{print $2}'")
-		})
-		It("check kubeblocks exist or not-exist", func() {
-			log.Println("kubeblocks : " + kubeblocks)
-			Expect(kubeblocks).ShouldNot(BeEmpty())
-			if len(kubeblocks) == 0 {
-				var _ = Describe("KubeBlocks operator installation", installation.InstallationTest)
-			}
-		})
-	}
-
-	var _ = Describe("Configure running e2e information", smoketest.Config)
-
-	var _ = Describe("KubeBlocks smoke test run", smoketest.SmokeTest)
-
-	var _ = Describe("Delete e2e config resources", smoketest.DeleteConfig)
-
-	if initEnv == false {
-		if len(kubeblocks) > 0 {
-			var _ = Describe("KubeBlocks operator uninstallation", installation.UninstallationTest)
-		}
-	}
-
-	if initEnv {
-		var _ = Describe("KubeBlocks playground destroy", smoketest.PlaygroundDestroy)
-		var _ = Describe("Check environment has been cleaned", envcheck.EnvGotCleanedTest)
-	}
-
-	var _ = Describe("show test report", smoketest.AnalyzeE2eReport)
-
-	if initEnv {
-		var _ = Describe("save test report to s3", smoketest.UploadReport)
+	if !skipCertManagerInstall && !isCertManagerAlreadyInstalled {
+		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling CertManager...\n")
+		utils.UninstallCertManager()
 	}
 })
