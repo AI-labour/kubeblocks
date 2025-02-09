@@ -53,11 +53,11 @@ var (
 	sharedVolumeMount = corev1.VolumeMount{Name: "kubeblocks", MountPath: kbAgentSharedMountPath}
 )
 
-func IsKBAgentContainer(c *corev1.Container) bool {
+func IsKubeBlocksAgentContainer(c *corev1.Container) bool {
 	return c.Name == kbagent.ContainerName || c.Name == kbagent.ContainerName4Worker || c.Name == kbagent.InitContainerName
 }
 
-func UpdateKBAgentContainer4HostNetwork(synthesizedComp *SynthesizedComponent) {
+func UpdateKubeBlocksAgentContainerForHostNetwork(synthesizedComp *SynthesizedComponent) {
 	idx, c := intctrlutil.GetContainerByName(synthesizedComp.PodSpec.Containers, kbagent.ContainerName)
 	if c == nil {
 		return
@@ -95,7 +95,7 @@ func UpdateKBAgentContainer4HostNetwork(synthesizedComp *SynthesizedComponent) {
 	synthesizedComp.PodSpec.Containers[idx] = *c
 }
 
-func buildKBAgentTaskEnv(task proto.Task) (map[string]string, error) {
+func BuildKubeBlocksAgentTaskEnvironment(task proto.Task) (map[string]string, error) {
 	envVar, err := kbagent.BuildEnv4Worker([]proto.Task{task})
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func buildKBAgentTaskEnv(task proto.Task) (map[string]string, error) {
 	}, nil
 }
 
-func updateKBAgentTaskEnv(envVars map[string]string, f func(proto.Task) *proto.Task) (map[string]string, error) {
+func UpdateKubeBlocksAgentTaskEnvironment(envVars map[string]string, f func(proto.Task) *proto.Task) (map[string]string, error) {
 	envVar, err := kbagent.UpdateEnv4Worker(envVars, f)
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func updateKBAgentTaskEnv(envVars map[string]string, f func(proto.Task) *proto.T
 	}, nil
 }
 
-func buildKBAgentContainer(synthesizedComp *SynthesizedComponent) error {
+func BuildKubeBlocksAgentServerContainer(synthesizedComp *SynthesizedComponent) error {
 	if synthesizedComp.LifecycleActions == nil {
 		return nil
 	}
@@ -213,7 +213,7 @@ func buildKBAgentContainer(synthesizedComp *SynthesizedComponent) error {
 	return nil
 }
 
-func mergedActionEnv4KBAgent(synthesizedComp *SynthesizedComponent) []corev1.EnvVar {
+func MergeLifecycleActionEnvironmentsForAgent(synthesizedComp *SynthesizedComponent) []corev1.EnvVar {
 	env := make([]corev1.EnvVar, 0)
 	envSet := sets.New[string]()
 
@@ -250,7 +250,7 @@ func mergedActionEnv4KBAgent(synthesizedComp *SynthesizedComponent) []corev1.Env
 	return env
 }
 
-func buildKBAgentStartupEnvs(synthesizedComp *SynthesizedComponent) ([]corev1.EnvVar, error) {
+func BuildKubeBlocksAgentStartupEnvironment(synthesizedComp *SynthesizedComponent) ([]corev1.EnvVar, error) {
 	var (
 		actions   []proto.Action
 		probes    []proto.Probe
@@ -307,7 +307,7 @@ func buildKBAgentStartupEnvs(synthesizedComp *SynthesizedComponent) ([]corev1.En
 	return kbagent.BuildEnv4Server(actions, probes, streaming)
 }
 
-func probeReportPeriodSeconds(periodSeconds int32) int32 {
+func GetProbeReportPeriodSeconds(periodSeconds int32) int32 {
 	if periodSeconds <= 0 {
 		return defaultProbeReportPeriodSeconds
 	}
@@ -317,7 +317,7 @@ func probeReportPeriodSeconds(periodSeconds int32) int32 {
 	return periodSeconds
 }
 
-func buildAction4KBAgent(action *appsv1.Action, name string) *proto.Action {
+func BuildKubeBlocksAgentAction(action *appsv1.Action, name string) *proto.Action {
 	if action == nil || action.Exec == nil {
 		return nil
 	}
@@ -338,7 +338,7 @@ func buildAction4KBAgent(action *appsv1.Action, name string) *proto.Action {
 	return a
 }
 
-func buildProbe4KBAgent(probe *appsv1.Probe, name, instance string) (*proto.Action, *proto.Probe) {
+func BuildKubeBlocksAgentProbe(probe *appsv1.Probe, name, instance string) (*proto.Action, *proto.Probe) {
 	if probe == nil || probe.Exec == nil {
 		return nil, nil
 	}
@@ -354,7 +354,7 @@ func buildProbe4KBAgent(probe *appsv1.Probe, name, instance string) (*proto.Acti
 	return a, p
 }
 
-func handleCustomImageNContainerDefined(synthesizedComp *SynthesizedComponent, containers ...*corev1.Container) error {
+func HandleCustomAgentImageAndContainer(synthesizedComp *SynthesizedComponent, containers ...*corev1.Container) error {
 	image, c, err := customExecActionImageNContainer(synthesizedComp)
 	if err != nil {
 		return err
@@ -387,7 +387,7 @@ func handleCustomImageNContainerDefined(synthesizedComp *SynthesizedComponent, c
 	return nil
 }
 
-func customExecActionImageNContainer(synthesizedComp *SynthesizedComponent) (string, *corev1.Container, error) {
+func GetCustomImageAndContainerForExecAction(synthesizedComp *SynthesizedComponent) (string, *corev1.Container, error) {
 	if synthesizedComp.LifecycleActions == nil {
 		return "", nil, nil
 	}
@@ -443,7 +443,7 @@ func customExecActionImageNContainer(synthesizedComp *SynthesizedComponent) (str
 	return image, c, nil
 }
 
-func getAvailablePorts(containers []corev1.Container, containerPorts []int32) ([]int32, error) {
+func GetAvailableContainerPorts(containers []corev1.Container, containerPorts []int32) ([]int32, error) {
 	inUse, err := getInUsePorts(containers)
 	if err != nil {
 		return nil, err
@@ -457,7 +457,7 @@ func getAvailablePorts(containers []corev1.Container, containerPorts []int32) ([
 	return availablePort, nil
 }
 
-func getInUsePorts(containers []corev1.Container) (map[int32]bool, error) {
+func GetInUseContainerPorts(containers []corev1.Container) (map[int32]bool, error) {
 	inUse := map[int32]bool{}
 	for _, container := range containers {
 		for _, v := range container.Ports {
@@ -471,7 +471,7 @@ func getInUsePorts(containers []corev1.Container) (map[int32]bool, error) {
 	return inUse, nil
 }
 
-func iterAvailablePort(port int32, set map[int32]bool) (int32, error) {
+func IterateForAvailablePort(port int32, set map[int32]bool) (int32, error) {
 	if port < minAvailablePort || port > maxAvailablePort {
 		port = minAvailablePort
 	}
