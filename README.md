@@ -1,3 +1,5 @@
+# KubeBlocks: Cloud-Native Data Infrastructure for Kubernetes
+
 # Welcome to the KubeBlocks project!
 
 [![Documentation status](https://github.com/apecloud/kubeblocks.io/workflows/Documentation/badge.svg)](https://kubeblocks.io)
@@ -17,11 +19,15 @@
 
 ## Motivation
 
+---
+
 If you are a developer using multiple types of databases in your application and are considering deploying both your application and databases on K8s for cost or efficiency reasons, you need to find suitable operators for each database. Learning so many different operators and their APIs introduces a significant learning curve and time costs, not to mention the effort required to maintain them.
 
 KubeBlocks uses a unified set of APIs (CRDs) and code to manage various databases on K8s. For example, we can use the `Cluster` resource to create a PostgreSQL cluster, a Redis cluster, or a Kafka cluster. This abstraction and unified API allow us to further use a single set of operator code to manage multiple types of databases, as well as handle day-2 operations, theoretically extending to any type of database engine.
 
 ## What is KubeBlocks
+
+---
 
 KubeBlocks is an open-source control plane software that runs and manages multiple popular database engines on K8s through a unified set of code and APIs. The core of KubeBlocks is a K8s operator, which defines a set of CRDs to abstract the common attributes of various database engines and uses these abstractions to manage the engine's lifecycle and day-2 operations.
 
@@ -30,6 +36,8 @@ KubeBlocks manages various types of stateful engines, including RDBMSs (MySQL, P
 The name KubeBlocks is inspired by Kubernetes and LEGO blocks, signifying that through the KubeBlocks API, adding, composing and managing database engines on K8s can be easy, standard and productive, like playing with LEGO blocks.
 
 ### Why you need KubeBlocks
+
+---
 
 KubeBlocks integrates the most popular database engines and provides rich management functions, along with declarative APIs, in various environments. KubeBlocks offers the following benefits:
 
@@ -55,11 +63,15 @@ KubeBlocks integrates the most popular database engines and provides rich manage
 
 ### Goals
 
-- Smoothing the learning curve of managing various databases on K8s
+---
+
+- Simplify the learning curve for managing various databases on K8s
 - Exploring standard APIs for managing databases on Kubernetes
 - Being open and cloud-neutral, as well as engine-neutral
 
 ### Key features
+
+---
 
 - Supports various databases, including MySQL, PostgreSQL, Redis, MongoDB, Kafka, Clickhouse, ElasticSearch and more
 - Provides production-level performance, resilience, and observability
@@ -69,9 +81,13 @@ KubeBlocks integrates the most popular database engines and provides rich manage
 
 ## Get started with KubeBlocks
 
+---
+
 [Quick Start](https://kubeblocks.io/docs/preview/user_docs/try-out-on-playground/try-kubeblocks-on-your-laptop) shows you the quickest way to get started with KubeBlocks.
 
 ## Resources
+
+---
 
 [API Reference](https://kubeblocks.io/docs/release-0.8/developer_docs/api-reference/cluster)
 
@@ -83,11 +99,15 @@ KubeBlocks integrates the most popular database engines and provides rich manage
 
 ## KubeBlocks at KubeCon
 
+---
+
 KubeCon 2024 in HongKong from 21-23 August 2024: [How to Manage Database Clusters Without a Dedicated Operator, By Shanshan Ying, ApeCloud & Shun Ding, China Mobile Cloud](https://kccncossaidevchn2024.sched.com/event/1eYYL/how-to-manage-database-clusters-without-a-dedicated-operator-nanoxi-operatorzha-fa-lia-zhong-shi-shanshan-ying-apecloud-shun-ding-china-mobile-cloud)
 
 KubeCon 2024 in HongKong from 21-23 August 2024: [KuaiShou's 100% Resource Utilization Boost: 100K Redis Migration from Bare Metal to Kubernetes, By XueQiang Wu, ApeCloud & YuXing Liu, Kuaishou](https://kccncossaidevchn2024.sched.com/event/1eYat/kuaishous-100-resource-utilization-boost-100k-redis-migration-from-bare-metal-to-kubernetes-zha-100pian-zhi-yi-daeplie-hui-zhe-100k-rediskubernetes-xueqiang-wu-apecloud-yuxing-liu-kuaishou)
 
 ## Community
+
+---
 
 If you have any questions, you can reach out to us through:
 
@@ -104,16 +124,22 @@ You can also follow us on:
 
 ## Contributing to KubeBlocks
 
+---
+
 Your contributions are welcomed and appreciated.
 
-- See the [Contributor Guide](docs/CONTRIBUTING.md) for details on typical contribution workflows.
-- See the [Developer Guide](docs%2F00%20-%20index.md) to get started with building and developing.
+- See the [Contributor Guide](https://github.com/apecloud/kubeblocks/blob/main/docs/CONTRIBUTING.md) for details on typical contribution workflows.
+- See the [Developer Guide](https://github.com/apecloud/kubeblocks/blob/main/docs/00%20-%20index.md) to get started with building and developing.
 
 ## Report Vulnerability
+
+---
 
 We consider security as the top priority issue. If you find any security issues, please [Report a security vulnerability](https://github.com/apecloud/kubeblocks/security/advisories/new) issue.
 
 ## License
 
+---
+
 KubeBlocks is under the GNU Affero General Public License v3.0.
-See the [LICENSE](./LICENSE) file for details.
+See the [LICENSE](https://github.com/apecloud/kubeblocks/blob/main/LICENSE) file for details.
