@@ -933,6 +933,18 @@ If set, all the computing resources will be released.</p>
 <p>Specifies the sidecars to be injected into the Component.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableInstanceAPI</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to enable the new Instance API.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </td>
@@ -1587,6 +1599,7 @@ with <code>preCondition</code> specifying when the action should be fired relati
 <code>Immediately</code>, <code>RuntimeReady</code>, <code>ComponentReady</code>, and <code>ClusterReady</code>.</li>
 <li><code>preTerminate</code>: Defines the hook to be executed before terminating a Component.</li>
 <li><code>roleProbe</code>: Defines the procedure which is invoked regularly to assess the role of replicas.</li>
+<li><code>availableProbe</code>: Defines the procedure which is invoked regularly to assess the availability of the component.</li>
 <li><code>switchover</code>: Defines the procedure for a controlled transition of a role to a new replica.
 This approach aims to minimize downtime and maintain availability in systems with a leader-follower topology,
 such as before planned maintenance or upgrades on the current leader node.</li>
@@ -2295,6 +2308,7 @@ with <code>preCondition</code> specifying when the action should be fired relati
 <code>Immediately</code>, <code>RuntimeReady</code>, <code>ComponentReady</code>, and <code>ClusterReady</code>.</li>
 <li><code>preTerminate</code>: Defines the hook to be executed before terminating a Component.</li>
 <li><code>roleProbe</code>: Defines the procedure which is invoked regularly to assess the role of replicas.</li>
+<li><code>availableProbe</code>: Defines the procedure which is invoked regularly to assess the availability of the component.</li>
 <li><code>switchover</code>: Defines the procedure for a controlled transition of a role to a new replica.</li>
 <li><code>memberJoin</code>: Defines the procedure to add a new replica to the replication group.</li>
 <li><code>memberLeave</code>: Defines the method to remove a replica from the replication group.</li>
@@ -2312,21 +2326,20 @@ A set of predefined environment variables are available and can be leveraged wit
 to access context information such as details about pods, components, the overall cluster state,
 or database connection credentials.
 These variables provide a dynamic and context-aware mechanism for script execution.</li>
-<li>HTTPAction: Performs an HTTP request.
-HTTPAction is to be implemented in future version.</li>
-<li>GRPCAction: In future version, Actions will support initiating gRPC calls.
+<li>HTTPAction: Performs a single HTTP(S) request.</li>
+<li>GRPCAction: Issues a unary gRPC call to a target service.
 This allows developers to implement Actions using plugins written in programming language like Go,
 providing greater flexibility and extensibility.</li>
 </ul>
-<p>An action is considered successful on returning 0, or HTTP 200 for status HTTP(s) Actions.
+<p>An action is considered successful on returning 0, or HTTP 2xx for status HTTP actions.
 Any other return value or HTTP status codes indicate failure,
 and the action may be retried based on the configured retry policy.</p>
 <ul>
 <li>If an action exceeds the specified timeout duration, it will be terminated, and the action is considered failed.</li>
 <li>If an action produces any data as output, it should be written to stdout,
-or included in the HTTP response payload for HTTP(s) actions.</li>
+or included in the HTTP response payload for HTTP actions.</li>
 <li>If an action encounters any errors, error messages should be written to stderr,
-or detailed in the HTTP response with the appropriate non-200 status code.</li>
+or detailed in the HTTP response with the appropriate non-2xx status code.</li>
 </ul>
 </div>
 <table>
@@ -2349,6 +2362,75 @@ ExecAction
 <td>
 <em>(Optional)</em>
 <p>Defines the command to run.</p>
+<p>This field cannot be updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>http</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.HTTPAction">
+HTTPAction
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Defines the HTTP request to perform.</p>
+<p>This field cannot be updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>grpc</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.GRPCAction">
+GRPCAction
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Defines the gRPC call to issue.</p>
+<p>This field cannot be updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>targetPodSelector</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.TargetPodSelector">
+TargetPodSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Defines the criteria used to select the target Pod(s) for executing the Action.
+This is useful when there is no default target replica identified.
+It allows for precise control over which Pod(s) the Action should run in.</p>
+<p>If not specified, the Action will be executed in the pod where the Action is triggered, such as the pod
+to be removed or added; or a random pod if the Action is triggered at the component level, such as
+post-provision or pre-terminate of the component.</p>
+<p>This field cannot be updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>matchingKey</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used in conjunction with the <code>targetPodSelector</code> field to refine the selection of target pod(s) for Action execution.
+The impact of this field depends on the <code>targetPodSelector</code> value:</p>
+<ul>
+<li>When <code>targetPodSelector</code> is set to <code>Any</code> or <code>All</code>, this field will be ignored.</li>
+<li>When <code>targetPodSelector</code> is set to <code>Role</code>, only those replicas whose role matches the <code>matchingKey</code>
+will be selected for the Action.</li>
+</ul>
 <p>This field cannot be updated.</p>
 </td>
 </tr>
@@ -3357,6 +3439,18 @@ bool
 If set, all the computing resources will be released.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableInstanceAPI</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to enable the new Instance API.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="apps.kubeblocks.io/v1.ClusterComponentStatus">ClusterComponentStatus
@@ -3385,6 +3479,7 @@ ComponentPhase
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Specifies the current state of the Component.</p>
 </td>
 </tr>
@@ -3397,8 +3492,31 @@ map[string]string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Records detailed information about the Component in its current phase.
-The keys are either podName, deployName, or statefulSetName, formatted as &lsquo;ObjectKind/Name&rsquo;.</p>
+<p>Records detailed information about the Component in its current phase.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>observedGeneration</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Indicates the most recent generation of the component state observed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>upToDate</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Indicates whether the component state observed is up-to-date with the desired state.</p>
 </td>
 </tr>
 </tbody>
@@ -5373,6 +5491,7 @@ with <code>preCondition</code> specifying when the action should be fired relati
 <code>Immediately</code>, <code>RuntimeReady</code>, <code>ComponentReady</code>, and <code>ClusterReady</code>.</li>
 <li><code>preTerminate</code>: Defines the hook to be executed before terminating a Component.</li>
 <li><code>roleProbe</code>: Defines the procedure which is invoked regularly to assess the role of replicas.</li>
+<li><code>availableProbe</code>: Defines the procedure which is invoked regularly to assess the availability of the component.</li>
 <li><code>switchover</code>: Defines the procedure for a controlled transition of a role to a new replica.
 This approach aims to minimize downtime and maintain availability in systems with a leader-follower topology,
 such as before planned maintenance or upgrades on the current leader node.</li>
@@ -6605,6 +6724,18 @@ If set, all the computing resources will be released.</p>
 <p>Specifies the sidecars to be injected into the Component.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableInstanceAPI</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to enable the new Instance API.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="apps.kubeblocks.io/v1.ComponentStatus">ComponentStatus
@@ -7750,6 +7881,325 @@ If empty, Prometheus uses the default value <code>http</code>.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="apps.kubeblocks.io/v1.GRPCAction">GRPCAction
+</h3>
+<p>
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.Action">Action</a>)
+</p>
+<div>
+<p>GRPCAction describes an action that issues a unary gRPC call to a target service.</p>
+<p>Reflection &amp; templating:
+  - This implementation uses gRPC Server Reflection to discover service/method schemas at runtime.
+    The target service MUST enable reflection. See: <a href="https://grpc.io/docs/guides/reflection/">https://grpc.io/docs/guides/reflection/</a>.
+  - Request message field values in <code>Request</code> support Go text/template syntax and will be rendered
+    with predefined action variables before marshaling into the request message.
+  - Not intended for streaming or large data-transfer operations (e.g., dataLoad, dataDump).
+Only unary (non-streaming) RPCs are supported.</p>
+<p>Success &amp; output:
+  - After invocation, the <code>Status</code> field in <code>Response</code> (if set) is inspected; a non-empty value
+    indicates failure.
+  - The <code>Message</code> field in <code>Response</code> (if set) is written to stdout if the invocation succeeds,
+or to stderr if it fails.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>port</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The port to access on the host.
+It may be a numeric string (e.g., &ldquo;50051&rdquo;) or a named port defined in the container spec.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>host</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The target host to connect to.
+Defaults to &ldquo;127.0.0.1&rdquo; if not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>service</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Fully-qualified name of the gRPC service to call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>method</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the method to invoke on the gRPC service.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>request</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.GRPCRequest">
+GRPCRequest
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Request payload for the gRPC method.</p>
+<p>Keys are proto field names (lowerCamelCase); values are strings that can include Go templates.
+Templates are rendered with predefined action variables before the request is sent.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>response</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.GRPCResponse">
+GRPCResponse
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Required response schema for the gRPC method.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="apps.kubeblocks.io/v1.GRPCRequest">GRPCRequest
+(<code>map[string]string</code> alias)</h3>
+<p>
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.GRPCAction">GRPCAction</a>)
+</p>
+<div>
+<p>GRPCRequest is a map of proto field names to their string values.</p>
+</div>
+<h3 id="apps.kubeblocks.io/v1.GRPCResponse">GRPCResponse
+</h3>
+<p>
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.GRPCAction">GRPCAction</a>)
+</p>
+<div>
+<p>GRPCResponse defines which fields in the gRPC response should be treated as status or output.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the string field in the response that carries status information.
+If non-empty, the action fails.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the field in the response whose value should be output.
+Printed to stdout on success, or stderr on failure.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="apps.kubeblocks.io/v1.HTTPAction">HTTPAction
+</h3>
+<p>
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.Action">Action</a>)
+</p>
+<div>
+<p>HTTPAction defines an action that performs a single HTTP(S) request.</p>
+<p>Behavior &amp; templating:
+  - The request body (<code>Body</code>) supports Go text/template syntax. It is rendered with predefined variables
+    before the request is sent.
+  - Custom headers (<code>Headers</code>) can be specified. Each header value can also use Go text/template
+    syntax and will be rendered with the same predefined variables.
+  - Not intended for streaming or large data-transfer workflows (e.g., dataLoad, dataDump).
+Designed for one-shot request/response scenarios.</p>
+<p>Success:
+  - Any HTTP 2xx status code is considered success by default.
+- Non-2xx status codes are treated as failures.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>port</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The port to access on the host.
+It may be a numeric string (e.g., &ldquo;8080&rdquo;) or a named port defined in the container spec.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>host</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The target host to connect to.
+Defaults to &ldquo;127.0.0.1&rdquo; if not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scheme</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The scheme to use for connecting to the host.
+Defaults to &ldquo;HTTP&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The path to request on the HTTP server.
+Defaults to &ldquo;/&rdquo; if not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>method</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The HTTP method to use.
+Defaults to &ldquo;GET&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>headers</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.HTTPHeader">
+[]HTTPHeader
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Custom headers to set in the request.
+Header values may use Go text/template syntax, rendered with predefined variables.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>body</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional HTTP request body.</p>
+<p>Supports Go text/template syntax; rendered with predefined variables before sending.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="apps.kubeblocks.io/v1.HTTPHeader">HTTPHeader
+</h3>
+<p>
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.HTTPAction">HTTPAction</a>)
+</p>
+<div>
+<p>HTTPHeader represents a single HTTP header key/value pair.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the header field.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Value of the header field.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="apps.kubeblocks.io/v1.HostNetwork">HostNetwork
 </h3>
 <p>
@@ -8140,7 +8590,7 @@ RollingUpdate
 <h3 id="apps.kubeblocks.io/v1.InstanceUpdateStrategyType">InstanceUpdateStrategyType
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.InstanceUpdateStrategy">InstanceUpdateStrategy</a>)
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.InstanceUpdateStrategy">InstanceUpdateStrategy</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec</a>)
 </p>
 <div>
 <p>InstanceUpdateStrategyType is a string enumeration type that enumerates
@@ -8695,7 +9145,7 @@ Cannot be updated.</p>
 <h3 id="apps.kubeblocks.io/v1.PersistentVolumeClaimRetentionPolicy">PersistentVolumeClaimRetentionPolicy
 </h3>
 <p>
-(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ClusterComponentSpec">ClusterComponentSpec</a>, <a href="#apps.kubeblocks.io/v1.ComponentSpec">ComponentSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>)
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ClusterComponentSpec">ClusterComponentSpec</a>, <a href="#apps.kubeblocks.io/v1.ComponentSpec">ComponentSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec</a>)
 </p>
 <div>
 <p>PersistentVolumeClaimRetentionPolicy describes the policy used for PVCs created from the VolumeClaimTemplates.</p>
@@ -9052,7 +9502,7 @@ More info: <a href="https://kubernetes.io/docs/concepts/storage/persistent-volum
 <h3 id="apps.kubeblocks.io/v1.PodUpdatePolicyType">PodUpdatePolicyType
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ClusterComponentSpec">ClusterComponentSpec</a>, <a href="#apps.kubeblocks.io/v1.ComponentSpec">ComponentSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>)
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ClusterComponentSpec">ClusterComponentSpec</a>, <a href="#apps.kubeblocks.io/v1.ComponentSpec">ComponentSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec</a>)
 </p>
 <div>
 <p>PodUpdatePolicyType indicates how pods should be updated</p>
@@ -9298,7 +9748,7 @@ int32
 <h3 id="apps.kubeblocks.io/v1.ReplicaRole">ReplicaRole
 </h3>
 <p>
-(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ComponentDefinitionSpec">ComponentDefinitionSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>, <a href="#workloads.kubeblocks.io/v1.MemberStatus">MemberStatus</a>)
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ComponentDefinitionSpec">ComponentDefinitionSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec</a>, <a href="#workloads.kubeblocks.io/v1.MemberStatus">MemberStatus</a>)
 </p>
 <div>
 <p>ReplicaRole represents a role that can be assigned to a component instance, defining its behavior and responsibilities.</p>
@@ -12433,7 +12883,7 @@ VarOption
 <h3 id="apps.kubeblocks.io/v1.TargetPodSelector">TargetPodSelector
 (<code>string</code> alias)</h3>
 <p>
-(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.ExecAction">ExecAction</a>)
+(<em>Appears on:</em><a href="#apps.kubeblocks.io/v1.Action">Action</a>, <a href="#apps.kubeblocks.io/v1.ExecAction">ExecAction</a>)
 </p>
 <div>
 <p>TargetPodSelector defines how to select pod(s) to execute an Action.</p>
@@ -30915,8 +31365,279 @@ string
 </div>
 Resource Types:
 <ul><li>
+<a href="#workloads.kubeblocks.io/v1.Instance">Instance</a>
+</li><li>
 <a href="#workloads.kubeblocks.io/v1.InstanceSet">InstanceSet</a>
 </li></ul>
+<h3 id="workloads.kubeblocks.io/v1.Instance">Instance
+</h3>
+<div>
+<p>Instance is the Schema for the instances API</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code><br/>
+string</td>
+<td>
+<code>workloads.kubeblocks.io/v1</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code><br/>
+string
+</td>
+<td><code>Instance</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#workloads.kubeblocks.io/v1.InstanceSpec">
+InstanceSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#podtemplatespec-v1-core">
+Kubernetes core/v1.PodTemplateSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>selector</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>Represents a label query over pods that should match the desired replica count indicated by the <code>replica</code> field.
+It must match the labels defined in the pod template.
+More info: <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors">https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>minReadySeconds</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Defines the minimum number of seconds a newly created pod should be ready
+without any of its container crashing to be considered available.
+Defaults to 0, meaning the pod will be considered available as soon as it is ready.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>volumeClaimTemplates</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#persistentvolumeclaimtemplate-v1-core">
+[]Kubernetes core/v1.PersistentVolumeClaimTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies a list of PersistentVolumeClaim templates that define the storage requirements for the instance.
+Each template specifies the desired characteristics of a persistent volume, such as storage class,
+size, and access modes.
+These templates are used to dynamically provision persistent volumes for instance upon their creation.
+The final name of each PVC is generated by appending the pod&rsquo;s identifier to the name specified in volumeClaimTemplates[*].name.</p>
+<p>VolumeClaimTemplates []corev1.PersistentVolumeClaim <code>json:&quot;volumeClaimTemplates,omitempty&quot;</code></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>persistentVolumeClaimRetentionPolicy</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.PersistentVolumeClaimRetentionPolicy">
+PersistentVolumeClaimRetentionPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
+volume claims created from volumeClaimTemplates. By default, all persistent
+volume claims are created as needed and retained until manually deleted. This
+policy allows the lifecycle to be altered, for example by deleting persistent
+volume claims when their workload is deleted, or when their pod is scaled
+down.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceSetName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceTemplateName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceUpdateStrategyType</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.InstanceUpdateStrategyType">
+InstanceUpdateStrategyType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Provides fine-grained control over the spec update process of the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podUpdatePolicy</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.PodUpdatePolicyType">
+PodUpdatePolicyType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PodUpdatePolicy indicates how pods should be updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roles</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.ReplicaRole">
+[]ReplicaRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of roles defined in the system. Instanceset obtains role through pods&rsquo; role label <code>kubeblocks.io/role</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>membershipReconfiguration</code><br/>
+<em>
+<a href="#workloads.kubeblocks.io/v1.MembershipReconfiguration">
+MembershipReconfiguration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Provides actions to do membership dynamic reconfiguration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>templateVars</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Provides variables which are used to call Actions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceAssistantObjects</code><br/>
+<em>
+<a href="#workloads.kubeblocks.io/v1.InstanceAssistantObject">
+[]InstanceAssistantObject
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Assistant objects that are necessary to run the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scaledDown</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Indicate whether the instance is scaled down.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#workloads.kubeblocks.io/v1.InstanceStatus2">
+InstanceStatus2
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="workloads.kubeblocks.io/v1.InstanceSet">InstanceSet
 </h3>
 <div>
@@ -31315,6 +32036,55 @@ bool
 <p>Specifies whether to create the default headless service.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableInstanceAPI</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to enable the new Instance API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceAssistantObjects</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectreference-v1-core">
+[]Kubernetes core/v1.ObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Assistant objects that are necessary to run the instance.</p>
+<ul>
+<li>Service:
+<ul>
+<li>component service</li>
+</ul></li>
+<li>ConfigMap:
+<ul>
+<li>config &amp; script templates</li>
+<li>env</li>
+<li>kbagent task</li>
+</ul></li>
+<li>Secret:
+<ul>
+<li>account</li>
+<li>TLS</li>
+</ul></li>
+<li>RBAC:
+<ul>
+<li>sa</li>
+<li>role</li>
+<li>rolebinding</li>
+</ul></li>
+</ul>
+</td>
+</tr>
 </tbody>
 </table>
 </td>
@@ -31437,6 +32207,95 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>The parameters to call the reconfigure action.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="workloads.kubeblocks.io/v1.InstanceAssistantObject">InstanceAssistantObject
+</h3>
+<p>
+(<em>Appears on:</em><a href="#workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec</a>)
+</p>
+<div>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>service</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#service-v1-core">
+Kubernetes core/v1.Service
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMap</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#configmap-v1-core">
+Kubernetes core/v1.ConfigMap
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secret</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#secret-v1-core">
+Kubernetes core/v1.Secret
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccount</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#serviceaccount-v1-core">
+Kubernetes core/v1.ServiceAccount
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#role-v1-rbac">
+Kubernetes rbac/v1.Role
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleBinding</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#rolebinding-v1-rbac">
+Kubernetes rbac/v1.RoleBinding
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -31836,6 +32695,55 @@ bool
 <p>Specifies whether to create the default headless service.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>enableInstanceAPI</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to enable the new Instance API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceAssistantObjects</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectreference-v1-core">
+[]Kubernetes core/v1.ObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Assistant objects that are necessary to run the instance.</p>
+<ul>
+<li>Service:
+<ul>
+<li>component service</li>
+</ul></li>
+<li>ConfigMap:
+<ul>
+<li>config &amp; script templates</li>
+<li>env</li>
+<li>kbagent task</li>
+</ul></li>
+<li>Secret:
+<ul>
+<li>account</li>
+<li>TLS</li>
+</ul></li>
+<li>RBAC:
+<ul>
+<li>sa</li>
+<li>role</li>
+<li>rolebinding</li>
+</ul></li>
+</ul>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="workloads.kubeblocks.io/v1.InstanceSetStatus">InstanceSetStatus
@@ -32075,6 +32983,219 @@ key is the pod name, value is the revision.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#workloads.kubeblocks.io/v1.Instance">Instance</a>)
+</p>
+<div>
+<p>InstanceSpec defines the desired state of Instance</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#podtemplatespec-v1-core">
+Kubernetes core/v1.PodTemplateSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>selector</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>Represents a label query over pods that should match the desired replica count indicated by the <code>replica</code> field.
+It must match the labels defined in the pod template.
+More info: <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors">https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>minReadySeconds</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Defines the minimum number of seconds a newly created pod should be ready
+without any of its container crashing to be considered available.
+Defaults to 0, meaning the pod will be considered available as soon as it is ready.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>volumeClaimTemplates</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#persistentvolumeclaimtemplate-v1-core">
+[]Kubernetes core/v1.PersistentVolumeClaimTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies a list of PersistentVolumeClaim templates that define the storage requirements for the instance.
+Each template specifies the desired characteristics of a persistent volume, such as storage class,
+size, and access modes.
+These templates are used to dynamically provision persistent volumes for instance upon their creation.
+The final name of each PVC is generated by appending the pod&rsquo;s identifier to the name specified in volumeClaimTemplates[*].name.</p>
+<p>VolumeClaimTemplates []corev1.PersistentVolumeClaim <code>json:&quot;volumeClaimTemplates,omitempty&quot;</code></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>persistentVolumeClaimRetentionPolicy</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.PersistentVolumeClaimRetentionPolicy">
+PersistentVolumeClaimRetentionPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent
+volume claims created from volumeClaimTemplates. By default, all persistent
+volume claims are created as needed and retained until manually deleted. This
+policy allows the lifecycle to be altered, for example by deleting persistent
+volume claims when their workload is deleted, or when their pod is scaled
+down.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceSetName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceTemplateName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceUpdateStrategyType</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.InstanceUpdateStrategyType">
+InstanceUpdateStrategyType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Provides fine-grained control over the spec update process of the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podUpdatePolicy</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.PodUpdatePolicyType">
+PodUpdatePolicyType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PodUpdatePolicy indicates how pods should be updated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roles</code><br/>
+<em>
+<a href="#apps.kubeblocks.io/v1.ReplicaRole">
+[]ReplicaRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of roles defined in the system. Instanceset obtains role through pods&rsquo; role label <code>kubeblocks.io/role</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>membershipReconfiguration</code><br/>
+<em>
+<a href="#workloads.kubeblocks.io/v1.MembershipReconfiguration">
+MembershipReconfiguration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Provides actions to do membership dynamic reconfiguration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>templateVars</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Provides variables which are used to call Actions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceAssistantObjects</code><br/>
+<em>
+<a href="#workloads.kubeblocks.io/v1.InstanceAssistantObject">
+[]InstanceAssistantObject
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Assistant objects that are necessary to run the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scaledDown</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Indicate whether the instance is scaled down.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="workloads.kubeblocks.io/v1.InstanceStatus">InstanceStatus
 </h3>
 <p>
@@ -32113,6 +33234,124 @@ string
 <td>
 <em>(Optional)</em>
 <p>The status of configs.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="workloads.kubeblocks.io/v1.InstanceStatus2">InstanceStatus2
+</h3>
+<p>
+(<em>Appears on:</em><a href="#workloads.kubeblocks.io/v1.Instance">Instance</a>)
+</p>
+<div>
+<p>InstanceStatus2 defines the observed state of Instance</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>observedGeneration</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>observedGeneration is the most recent generation observed for this InstanceSet. It corresponds to the
+InstanceSet&rsquo;s generation, which is updated on mutation by the API Server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Represents the latest available observations of an instance&rsquo;s current state.
+Known .status.conditions.type are: &ldquo;InstanceFailure&rdquo;, &ldquo;InstanceReady&rdquo;, &ldquo;InstanceAvailable&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>currentRevision</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>currentRevision, if not empty, indicates the version of the Instance used to generate pod.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateRevision</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>updateRevision, if not empty, indicates the version of the Instance used to generate pod.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>upToDate</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Represents whether the instance is up-to-date.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ready</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Represents whether the instance is in ready condition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>available</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Represents whether the instance is in available condition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Represents the role of the instance observed.</p>
 </td>
 </tr>
 </tbody>
@@ -32448,7 +33687,7 @@ ReplicaRole
 <h3 id="workloads.kubeblocks.io/v1.MembershipReconfiguration">MembershipReconfiguration
 </h3>
 <p>
-(<em>Appears on:</em><a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>)
+(<em>Appears on:</em><a href="#workloads.kubeblocks.io/v1.InstanceSetSpec">InstanceSetSpec</a>, <a href="#workloads.kubeblocks.io/v1.InstanceSpec">InstanceSpec</a>)
 </p>
 <div>
 </div>
